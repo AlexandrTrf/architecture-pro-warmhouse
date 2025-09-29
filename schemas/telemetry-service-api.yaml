@@ -1,0 +1,839 @@
+﻿openapi: 3.0.3
+info:
+  title: Telemetry Service API
+  description: API для сбора и обработки телеметрии умного дома. Сервис включает компоненты для сбора данных с датчиков, обработки телеметрии, валидации данных и интеграции с внешними API.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8009
+    description: Локальный сервер разработки
+
+paths:
+  /health:
+    get:
+      summary: Проверка состояния сервиса
+      description: Возвращает статус работоспособности сервиса
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Сервис работает нормально
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+
+  /api/v1/sensors:
+    get:
+      summary: Получить список всех датчиков
+      description: Возвращает список всех датчиков с актуальными данными
+      tags:
+        - Sensors
+      responses:
+        '200':
+          description: Список датчиков успешно получен
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Sensor'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      summary: Создать новый датчик
+      description: Создает новый датчик в системе
+      tags:
+        - Sensors
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SensorCreate'
+      responses:
+        '201':
+          description: Датчик успешно создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Sensor'
+        '400':
+          description: Неверные данные запроса
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/sensors/{id}:
+    get:
+      summary: Получить датчик по ID
+      description: Возвращает информацию о конкретном датчике
+      tags:
+        - Sensors
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID датчика
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Датчик найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Sensor'
+        '400':
+          description: Неверный ID датчика
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Датчик не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      summary: Обновить датчик
+      description: Обновляет информацию о датчике
+      tags:
+        - Sensors
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID датчика
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SensorUpdate'
+      responses:
+        '200':
+          description: Датчик успешно обновлен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Sensor'
+        '400':
+          description: Неверные данные запроса
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Датчик не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      summary: Удалить датчик
+      description: Удаляет датчик из системы
+      tags:
+        - Sensors
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID датчика
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Датчик успешно удален
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Sensor deleted successfully"
+        '400':
+          description: Неверный ID датчика
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/sensors/{id}/value:
+    patch:
+      summary: Обновить значение датчика
+      description: Обновляет текущее значение и статус датчика
+      tags:
+        - Sensors
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID датчика
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - value
+                - status
+              properties:
+                value:
+                  type: number
+                  format: double
+                  description: Новое значение датчика
+                  example: 23.5
+                status:
+                  type: string
+                  description: Статус датчика
+                  example: "active"
+      responses:
+        '200':
+          description: Значение датчика успешно обновлено
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Sensor value updated successfully"
+        '400':
+          description: Неверные данные запроса
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/sensors/temperature/{location}:
+    get:
+      summary: Получить температуру по местоположению
+      description: Получает актуальные данные о температуре для указанного местоположения
+      tags:
+        - Temperature
+      parameters:
+        - name: location
+          in: path
+          required: true
+          description: Местоположение датчика
+          schema:
+            type: string
+            example: "Living Room"
+      responses:
+        '200':
+          description: Данные о температуре получены
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemperatureData'
+        '400':
+          description: Неверное местоположение
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/telemetry:
+    get:
+      summary: Получить телеметрические данные
+      description: Возвращает агрегированные телеметрические данные с возможностью фильтрации
+      tags:
+        - Telemetry
+      parameters:
+        - name: sensor_id
+          in: query
+          description: ID датчика для фильтрации
+          schema:
+            type: string
+        - name: sensor_type
+          in: query
+          description: Тип датчика для фильтрации
+          schema:
+            type: string
+            enum: [ temperature, humidity, pressure, motion ]
+        - name: from
+          in: query
+          description: Начальная дата для фильтрации
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          description: Конечная дата для фильтрации
+          schema:
+            type: string
+            format: date-time
+        - name: limit
+          in: query
+          description: Количество записей для возврата
+          schema:
+            type: integer
+            default: 100
+            maximum: 1000
+      responses:
+        '200':
+          description: Телеметрические данные получены
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TelemetryData'
+        '400':
+          description: Неверные параметры запроса
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      summary: Отправить телеметрические данные
+      description: Принимает телеметрические данные от датчиков и устройств
+      tags:
+        - Telemetry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TelemetryDataInput'
+      responses:
+        '201':
+          description: Телеметрические данные успешно сохранены
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TelemetryData'
+        '400':
+          description: Неверные данные
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Ошибка валидации данных
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/telemetry/aggregated:
+    get:
+      summary: Получить агрегированные телеметрические данные
+      description: Возвращает агрегированные телеметрические данные по временным интервалам
+      tags:
+        - Telemetry
+      parameters:
+        - name: sensor_type
+          in: query
+          required: true
+          description: Тип датчика для агрегации
+          schema:
+            type: string
+            enum: [ temperature, humidity, pressure, motion ]
+        - name: interval
+          in: query
+          required: true
+          description: Интервал агрегации
+          schema:
+            type: string
+            enum: [ 1m, 5m, 15m, 1h, 1d ]
+        - name: from
+          in: query
+          required: true
+          description: Начальная дата
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          required: true
+          description: Конечная дата
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Агрегированные данные получены
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AggregatedTelemetryData'
+        '400':
+          description: Неверные параметры запроса
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/telemetry/events:
+    get:
+      summary: Получить события телеметрии
+      description: Возвращает события телеметрии из message broker
+      tags:
+        - Events
+      parameters:
+        - name: event_type
+          in: query
+          description: Тип события для фильтрации
+          schema:
+            type: string
+            enum: [ sensor_data, device_status, alert, threshold_exceeded ]
+        - name: limit
+          in: query
+          description: Количество событий для возврата
+          schema:
+            type: integer
+            default: 50
+            maximum: 200
+      responses:
+        '200':
+          description: События получены
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TelemetryEvent'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    Sensor:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Уникальный идентификатор датчика
+          example: 1
+        name:
+          type: string
+          description: Название датчика
+          example: "Living Room Temperature"
+        type:
+          type: string
+          enum: [ temperature ]
+          description: Тип датчика
+          example: "temperature"
+        location:
+          type: string
+          description: Местоположение датчика
+          example: "Living Room"
+        value:
+          type: number
+          format: double
+          description: Текущее значение датчика
+          example: 22.5
+        unit:
+          type: string
+          description: Единица измерения
+          example: "Celsius"
+        status:
+          type: string
+          description: Статус датчика
+          example: "active"
+        last_updated:
+          type: string
+          format: date-time
+          description: Время последнего обновления
+          example: "2024-01-15T10:30:00Z"
+        created_at:
+          type: string
+          format: date-time
+          description: Время создания датчика
+          example: "2024-01-15T09:00:00Z"
+      required:
+        - id
+        - name
+        - type
+        - location
+        - value
+        - unit
+        - status
+        - last_updated
+        - created_at
+
+    SensorCreate:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Название датчика
+          example: "Living Room Temperature"
+        type:
+          type: string
+          enum: [ temperature ]
+          description: Тип датчика
+          example: "temperature"
+        location:
+          type: string
+          description: Местоположение датчика
+          example: "Living Room"
+        unit:
+          type: string
+          description: Единица измерения
+          example: "Celsius"
+      required:
+        - name
+        - type
+        - location
+
+    SensorUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Название датчика
+          example: "Living Room Temperature"
+        type:
+          type: string
+          enum: [ temperature ]
+          description: Тип датчика
+          example: "temperature"
+        location:
+          type: string
+          description: Местоположение датчика
+          example: "Living Room"
+        value:
+          type: number
+          format: double
+          description: Текущее значение датчика
+          example: 22.5
+        unit:
+          type: string
+          description: Единица измерения
+          example: "Celsius"
+        status:
+          type: string
+          description: Статус датчика
+          example: "active"
+
+    TemperatureData:
+      type: object
+      properties:
+        location:
+          type: string
+          description: Местоположение датчика
+          example: "Living Room"
+        value:
+          type: number
+          format: double
+          description: Значение температуры
+          example: 22.5
+        unit:
+          type: string
+          description: Единица измерения
+          example: "Celsius"
+        status:
+          type: string
+          description: Статус датчика
+          example: "active"
+        timestamp:
+          type: string
+          format: date-time
+          description: Время измерения
+          example: "2024-01-15T10:30:00Z"
+        description:
+          type: string
+          description: Описание датчика
+          example: "Temperature sensor 1"
+      required:
+        - location
+        - value
+        - unit
+        - status
+        - timestamp
+
+    TelemetryData:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Уникальный идентификатор записи телеметрии
+          example: "tel_12345"
+        sensor_id:
+          type: string
+          description: ID датчика
+          example: "sensor_001"
+        sensor_type:
+          type: string
+          enum: [ temperature, humidity, pressure, motion ]
+          description: Тип датчика
+          example: "temperature"
+        value:
+          type: number
+          format: double
+          description: Значение телеметрии
+          example: 22.5
+        unit:
+          type: string
+          description: Единица измерения
+          example: "Celsius"
+        location:
+          type: string
+          description: Местоположение датчика
+          example: "Living Room"
+        timestamp:
+          type: string
+          format: date-time
+          description: Время измерения
+          example: "2024-01-15T10:30:00Z"
+        metadata:
+          type: object
+          description: Дополнительные метаданные
+          additionalProperties: true
+          example:
+            battery_level: 85
+            signal_strength: -45
+      required:
+        - sensor_id
+        - sensor_type
+        - value
+        - timestamp
+
+    TelemetryDataInput:
+      type: object
+      properties:
+        sensor_id:
+          type: string
+          description: ID датчика
+          example: "sensor_001"
+        sensor_type:
+          type: string
+          enum: [ temperature, humidity, pressure, motion ]
+          description: Тип датчика
+          example: "temperature"
+        value:
+          type: number
+          format: double
+          description: Значение телеметрии
+          example: 22.5
+        unit:
+          type: string
+          description: Единица измерения
+          example: "Celsius"
+        location:
+          type: string
+          description: Местоположение датчика
+          example: "Living Room"
+        metadata:
+          type: object
+          description: Дополнительные метаданные
+          additionalProperties: true
+          example:
+            battery_level: 85
+            signal_strength: -45
+      required:
+        - sensor_id
+        - sensor_type
+        - value
+
+    AggregatedTelemetryData:
+      type: object
+      properties:
+        sensor_type:
+          type: string
+          enum: [ temperature, humidity, pressure, motion ]
+          description: Тип датчика
+          example: "temperature"
+        interval_start:
+          type: string
+          format: date-time
+          description: Начало интервала агрегации
+          example: "2024-01-15T10:00:00Z"
+        interval_end:
+          type: string
+          format: date-time
+          description: Конец интервала агрегации
+          example: "2024-01-15T11:00:00Z"
+        min_value:
+          type: number
+          format: double
+          description: Минимальное значение
+          example: 20.1
+        max_value:
+          type: number
+          format: double
+          description: Максимальное значение
+          example: 24.8
+        avg_value:
+          type: number
+          format: double
+          description: Среднее значение
+          example: 22.5
+        count:
+          type: integer
+          description: Количество измерений
+          example: 60
+      required:
+        - sensor_type
+        - interval_start
+        - interval_end
+        - min_value
+        - max_value
+        - avg_value
+        - count
+
+    TelemetryEvent:
+      type: object
+      properties:
+        event_id:
+          type: string
+          description: Уникальный идентификатор события
+          example: "evt_12345"
+        event_type:
+          type: string
+          enum: [ sensor_data, device_status, alert, threshold_exceeded ]
+          description: Тип события
+          example: "sensor_data"
+        sensor_id:
+          type: string
+          description: ID датчика
+          example: "sensor_001"
+        timestamp:
+          type: string
+          format: date-time
+          description: Время события
+          example: "2024-01-15T10:30:00Z"
+        data:
+          type: object
+          description: Данные события
+          additionalProperties: true
+          example:
+            value: 22.5
+            threshold: 25.0
+            message: "Temperature is normal"
+        severity:
+          type: string
+          enum: [ info, warning, error, critical ]
+          description: Уровень важности события
+          example: "info"
+      required:
+        - event_id
+        - event_type
+        - timestamp
+
+    ValidationError:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Описание ошибки валидации
+          example: "Invalid sensor type"
+        field:
+          type: string
+          description: Поле с ошибкой
+          example: "sensor_type"
+        value:
+          type: string
+          description: Неверное значение
+          example: "invalid_type"
+        details:
+          type: array
+          description: Детали ошибок валидации
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Описание ошибки
+          example: "Sensor not found"
+        code:
+          type: string
+          description: Код ошибки
+          example: "SENSOR_NOT_FOUND"
+
+tags:
+  - name: Health
+    description: Эндпоинты для проверки состояния сервиса
+  - name: Sensors
+    description: Управление датчиками
+  - name: Temperature
+    description: Работа с температурными датчиками
+  - name: Telemetry
+    description: Работа с телеметрическими данными
+  - name: Events
+    description: События телеметрии

@@ -1,0 +1,90 @@
+﻿@startuml ERD
+hide circle
+
+entity "Devices" as Devices 
+{
+    * device_id : INT <<PK>>
+    * config_id: INT <<FK>>
+    name : VARCHAR(100) NOT NULL
+    status: VARCHAR(20) NOT NULL
+    created_at: DATETIME NOT NULL
+    updated_at: DATETIME NOT NULL
+}
+
+entity "DeviceTypes" as DeviceTypes
+{
+    * device_id : INT <<PK>>
+    description: VARCHAR(512) NOT NULL
+    capabilities: JSONB 
+    supported_configs: JSONB
+    name: VARCHAR(30) NOT NULL
+    created_at: DATETIME NOT NULL
+}
+
+entity "Locations" as Locations
+{
+  * device_id : INT <<PK>>
+  description: VARCHAR(512) NOT NULL
+  floor: INT
+  name: VARCHAR(30) NOT NULL
+  room_type: VARCHAR(50) NOT NULL
+  created_at: DATETIME NOT NULL
+}
+
+entity "DeviceConfigs" as DeviceConfigs {
+    *id: INT <<PK>>
+    *device_id: INT <<FK>>
+    config_type: VARCHAR(50) NOT NULL
+    config_data: JSONB NOT NULL
+    is_active: BOOLEAN DEFAULT true
+    created_at: DATETIME NOT NULL
+    updated_at: DATETIME NOT NULL
+
+}
+
+entity "Sensors" as Sensors {
+    *sensor_id: INT <<PK>>
+     name: VARCHAR(100) NOT NULL
+     type: VARCHAR(50) NOT NULL
+     location: VARCHAR(100) NOT NULL
+     value: FLOAT DEFAULT 0
+     unit: VARCHAR(20)
+     status: VARCHAR(20) NOT NULL DEFAULT 'inactive'
+     last_updated: DATETIME NOT NULL
+     created_at: DATETIME NOT NULL
+}
+
+entity "Alerts" as Alerts {
+     *alert_id: INT <<PK>>
+     *device_id: INT <<FK>>
+     *sensor_id: INT <<FK>>
+     type: VARCHAR(50) NOT NULL
+     severity: VARCHAR(20) NOT NULL
+     message: VARCHAR(512)  NOT NULL
+     threshold_value: FLOAT
+     current_value: FLOAT
+     status: VARCHAR(20) DEFAULT 'active'
+     created_at: DATETIME NOT NULL
+     resolved_at: DATETIME NOT NULL
+     acknowledged_at: DATETIME NOT NULL
+}
+
+entity "DeviceEvents" as DeviceEvents {
+    *id: UUID <<PK>>
+    *device_id: INT <<FK>>
+    event_type: VARCHAR(50) NOT NULL
+    event_data: JSONB
+    severity: VARCHAR(20) NOT NULL
+    timestamp: DATETIME NOT NULL
+    processed: BOOLEAN DEFAULT false
+    processed_at: DATETIME NOT NULL
+    created_at: DATETIME NOT NULL
+}
+
+Devices ||--o{ DeviceConfigs: "has many"
+Devices ||--o{ DeviceEvents: "has many"
+Devices ||--|| DeviceTypes: "belongs to"
+Devices ||--|| Locations: "belongs to"
+Sensors ||--o{ Alerts: "has many"
+Devices ||--o{ Alerts: "has many"
+@enduml

@@ -1,0 +1,33 @@
+﻿@startuml Telemetry Components Diagram
+!define RELATIVE_INCLUDE 
+!include ../common/C4_Component.puml
+
+top to bottom direction
+
+
+
+Container_Boundary(TelemetryBoundary, "Telemetry Management System") {
+
+  Component(TelemetryController, "Telemetry Controller", "C# REST Controller", "REST API для получения данных телеметрии умного дома")
+  Component(TelemetryService, "Telemetry Service", "Service", "Бизнес-логика обработки телеметрии")
+  Component(TelemetryRepository, "Telemetry Repository", "EF PostgreSQL", "Репозиторий для доступа к данным телеметрии")
+  Component(EventHandler, "Events Producer\Consumer", "MassTransit Consumer", "Обработчик событий из внешней среды")
+  Component(DataCollector, "Data Collector", "Service", "Получает данные с датчиков")
+    
+}
+
+
+Container_Ext(WebApi, "Smart Home System API", "C#, ASP.NET Core API", "API для системы умного дома")
+Container_Ext(TelemetryDatabase, "Telemetry Database", "PostgreSQL", "Хранит данные телеметрии датчиков")
+Container_Ext(MessageBroker,"Message Broker", "RabbitMQ", "Брокер сообщений")
+Container_Ext(TemperatureApi,"Temperature API", "REST API", "Получение данных с датчиков")
+
+
+Rel(WebApi, TelemetryController, "Получает данные телеметрии", "HTTP REST API")
+Rel(TelemetryController, TelemetryService, "Передает данные в слой бизнес-логики", "C#")
+Rel(TelemetryService, TelemetryRepository, "Получает\сохраняет данные", "EF Core")
+Rel(TelemetryService, DataCollector, "Запрашивает данные с датчиков", "С#")
+Rel(TelemetryRepository, TelemetryDatabase, "Получает\сохраняет данные", "SQL")
+Rel(DataCollector, TemperatureApi, "Запрашивает данные с датчиков", "REST API JSON")
+Rel(EventHandler, MessageBroker, "Получает события из очереди", "AMPQ")
+@enduml

@@ -1,0 +1,21 @@
+﻿@startuml Context Diagram
+!define RELATIVE_INCLUDE 
+!include ../common/C4_Context.puml
+
+title Контекстная диаграмма текущего решения компании "Тёплый дом" для удаленного управления отоплением
+
+Person(user, "Пользователь системы", "Владелец устройств умного дома, управляет отоплением в помещениях своего жилища")
+
+System(smart_home_system, "Система умного дома", "Монолитное приложение, обеспечивающая управление датчиками, контроль и управление температурой  доме")
+
+System_Ext(temperature_api, "Temperature API", "Внешний сервис для получения данных о температуре с датчиков")
+
+System_Ext(sensors, "Датчики температуры", "Датчики температуры, установленные в доме")
+
+Rel(user, smart_home_system, "Управляет отоплением\nПросматривает температуру", "HTTP API")
+
+Rel(smart_home_system, temperature_api, "Получает данные о температуре", "HTTP API")
+
+Rel(sensors, temperature_api, "Отправляет данные\nо температуре", "HTTP API")
+
+@enduml
