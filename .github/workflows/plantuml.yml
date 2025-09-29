@@ -112,4 +112,4 @@ jobs:
         with:
           name: generated-diagrams
           path: diagrams/**/*.png
-          retention-days: 5
+          retention-days: 5 
