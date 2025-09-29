@@ -1,4 +1,4 @@
-﻿name: PlantUML Diagrams
+﻿name: Plantuml workflow
 
 on:
   push:
@@ -10,33 +10,106 @@ on:
 
 jobs:
   generate-diagrams:
+    name: Генерация диаграмм
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Необходимо для push в репозиторий
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Set up Java
-        uses: actions/setup-java@v2
+        uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'   # <-- обязательный параметр
-          java-version: '11'
+          java-version: '17'
+          distribution: 'temurin'
 
-      - name: Install PlantUML
-        run: sudo apt-get install plantuml
+      - name: Install PlantUML and Graphviz
+        run: |
+          # Устанавливаем Graphviz (необходим для PlantUML)
+          sudo apt-get update
+          sudo apt-get install -y graphviz
+          
+          # Скачиваем последнюю версию PlantUML
+          wget -O plantuml.jar https://github.com/plantuml/plantuml/releases/latest/download/plantuml.jar
+          
+          # Проверяем установку
+          echo "Graphviz version:"
+          dot -V
+          echo "PlantUML version:"
+          java -jar plantuml.jar -version
+
+      - name: Check if diagram directories exist
+        run: |
+          echo "Checking diagram directories..."
+          ls -la diagrams/ || echo "diagrams directory not found"
+          find diagrams/ -name "*.puml" -type f || echo "No .puml files found"
 
       - name: Generate Diagrams
         run: |
-          plantuml diagrams/context/*.puml
-          plantuml diagrams/container/*.puml
-          plantuml diagrams/component/*.puml
-          plantuml diagrams/code/*.puml
+          # Создаем выходные директории если их нет
+          mkdir -p diagrams/context diagrams/container
+          
+          # Генерируем диаграммы с UTF-8 кодировкой
+          echo "Generating diagrams..."
+          
+          # Проверяем и генерируем context диаграмму
+          if [ -f "diagrams/context/context-diagram.puml" ]; then
+            echo "Generating context diagram..."
+            java -Dfile.encoding=UTF-8 -jar plantuml.jar diagrams/context/context-diagram.puml || {
+              echo "Error generating context diagram, trying with -tpng flag"
+              java -Dfile.encoding=UTF-8 -jar plantuml.jar -tpng diagrams/context/context-diagram.puml
+            }
+          else
+            echo "Context diagram not found: diagrams/context/context-diagram.puml"
+          fi
+          
+          # Генерируем все остальные .puml файлы
+          echo "Generating other diagrams..."
+          find diagrams/ -name "*.puml" -not -path "diagrams/context/context-diagram.puml" -exec sh -c '
+            echo "Processing: $1"
+            java -Dfile.encoding=UTF-8 -jar plantuml.jar "$1" || {
+              echo "Error with $1, trying with -tpng flag"
+              java -Dfile.encoding=UTF-8 -jar plantuml.jar -tpng "$1"
+            }
+          ' _ {} \;
+          
+          # Показываем сгенерированные файлы
+          echo "Generated files:"
+          find diagrams/ -name "*.png" -o -name "*.svg" || echo "No output files generated"
 
-      - name: Commit Diagrams
+      - name: Check for changes
+        id: verify-changed-files
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit and Push Diagrams
+        if: steps.verify-changed-files.outputs.changed == 'true' && github.event_name == 'push'
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add diagrams/**/*.png
-          git commit -m "Automated diagram generation"
-          git push origin main
-        if: success()
+          
+          # Добавляем только существующие файлы изображений
+          git add diagrams/ || true
+          
+          # Проверяем есть ли что коммитить
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          
+          git commit -m "🤖 Automated diagram generation [skip ci]"
+          git push origin warmhouse
+
+      - name: Upload artifacts (для отладки)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-diagrams
+          path: diagrams/**/*.png
+          retention-days: 5
