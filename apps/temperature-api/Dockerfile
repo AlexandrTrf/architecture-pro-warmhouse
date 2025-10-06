@@ -1,11 +1,11 @@
-# Build stage
+﻿# Build stage
 FROM golang:1.22-alpine AS builder
 
 # Set working directory
 WORKDIR /app
 
 # Copy go.mod and go.sum files
-COPY go.mod go.sum ./
+COPY go.mod ./
 
 # Download dependencies
 RUN go mod download
@@ -13,9 +13,8 @@ RUN go mod download
 # Copy the source code
 COPY . .
 
-RUN go mod tidy
 # Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -o smarthome
+RUN CGO_ENABLED=0 GOOS=linux go build -o temperature-api
 
 # Runtime stage
 FROM alpine:latest
@@ -27,10 +26,10 @@ RUN apk --no-cache add ca-certificates tzdata
 WORKDIR /app
 
 # Copy the binary from the builder stage
-COPY --from=builder /app/smarthome .
+COPY --from=builder /app/temperature-api .
 
 # Expose the port the app runs on
 EXPOSE 8080
 
 # Command to run the application
-CMD ["./smarthome"]
+CMD ["./temperature-api"]

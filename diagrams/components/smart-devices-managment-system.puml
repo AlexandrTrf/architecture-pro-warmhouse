@@ -1,0 +1,31 @@
+﻿@startuml SD Components Diagram
+!define RELATIVE_INCLUDE 
+!include ../common/C4_Component.puml
+
+top to bottom direction
+
+
+
+Container_Boundary(TelemetryBoundary, "Telemetry Management System") {
+
+  Component(SmartDevicesController, "Smart Devices Controller", "C# REST Controller", "REST API для получения данных об устройствах умного дома")
+  Component(SmartDevicesService, "Smart Devices Service", "Service", "Бизнес-логика обработки данных об устройствах умного дома")
+  Component(SmartDevicesRepository, "Smart Devices Repository", "EF PostgreSQL", "Репозиторий для доступа к данным об умных устройствах")
+  Component(EventPublisher, "Events Producer\Consumer", "MassTransit Producer\Consumer", "Обработчик событий из внешней среды")
+}
+
+
+Container_Ext(WebApi, "Smart Home System API", "C#, ASP.NET Core API", "API для системы умного дома")
+Container_Ext(SmartDevicesDatabase, "Smart Devices Database", "PostgreSQL", "Хранит данные о состоянии датчиков")
+Container_Ext(MessageBroker,"Message Broker", "RabbitMQ", "Брокер сообщений")
+Container_Ext(SmartDevices,"Умные устройства", "", "")
+
+
+Rel(WebApi, SmartDevicesController, "Получает данные умных устройств", "HTTP REST API")
+Rel(SmartDevices, SmartDevicesController, "Передают данные об устройствах", "HTTP REST API")
+Rel(SmartDevicesController, SmartDevicesService, "Передает данные в слой бизнес-логики", "C#")
+Rel(SmartDevicesService, SmartDevicesRepository, "Получает\сохраняет данные", "EF Core")
+Rel(SmartDevicesService, EventPublisher, "Публикует события", "MassTransit")
+Rel(SmartDevicesRepository, SmartDevicesDatabase, "Получает\сохраняет данные", "SQL")
+Rel(EventPublisher, MessageBroker, "Получает события из очереди", "AMPQ")
+@enduml

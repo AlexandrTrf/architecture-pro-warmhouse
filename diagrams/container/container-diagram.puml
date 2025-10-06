@@ -1,0 +1,38 @@
+﻿@startuml Container Diagram
+!define RELATIVE_INCLUDE 
+!include ../common/C4_Container.puml
+
+
+title Диаграмма контейнеров "Умный дом"
+
+Person(user, "Пользователь системы", "Владелец устройств умного дома, управляет датчиками в помещениях своего жилища")
+System(SmartHomeSystem, "Система умного дома компании Тёплый Дом", "Система управляет устройствами умного дома")
+
+Container_Boundary(SmartHomeSystem, "Smart Home System") {
+
+  Container(WebApi, "Smart Home System API", "C#, ASP.NET Core API", "API для системы умного дома")
+  Container(SmartDevicesManagmentSystem, "Smart Device management System", "C#, ASP.NET Core", "Управление устройствами умного дома")
+  Container(TelemetryManagmentSystem, "Telemetry collection system", "C#, ASP.NET Core", "Сбор телеметрии, предоставление агрегированных данных")
+  Container(Database, "Database", "PostgreSQL", "Хранит данные датчиков умных устройств")
+  Container(TelemetryDatabase, "Telemetry Database", "PostgreSQL", "Хранит данные телеметрии датчиков")
+  Container(MessageBroker, "Message Broker", "RabbitMQ", "Брокер сообщений. Позволяет асинхронно обмениваться сообщениями независимым системам")
+
+}
+
+System_Ext(TemperatureApi, "Third-Party API", "API для получения данных с датчиков")
+System_Ext(SmartDevices, "Устройства умного дома", "Физические компоненты умного дома")
+System_Ext(SmartSensor, "Датчик", "Датчик температуры\влажности\ и пр.")
+
+
+Rel(user, WebApi, "Использует")
+Rel(WebApi, SmartDevicesManagmentSystem, "Использует для управления устройствами", "HTTP REST API")
+Rel(WebApi, TelemetryManagmentSystem, "Получает телеметрию", "HTTP REST API")
+Rel(SmartDevicesManagmentSystem, Database, "Хранит данные устройств", "SQL")
+Rel(TelemetryManagmentSystem, TemperatureApi, "Получает данные от датчиков", "HTTP REST API")
+Rel(SmartDevices, SmartDevicesManagmentSystem, "Отправляют\изменяют статус устройства", "HTTP REST API")
+Rel(SmartSensor, TemperatureApi, "Отправляет данные", "HTTP REST API")
+Rel(TelemetryManagmentSystem, TelemetryDatabase, "Хранит данные телеметрии датчиков", "SQL")
+'Rel(SmartDevicesManagmentSystem, MessageBroker, "Публикует события", "AMPQ")
+Rel(TelemetryManagmentSystem, MessageBroker, "Публикует\подписывается на события", "AMPQ")
+
+@enduml

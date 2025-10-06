@@ -1,9 +1,9 @@
-version: '3.8'
+﻿version: '3.8'
 
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: smarthome-postgres
+    container_name: smarthome-db
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -12,7 +12,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./smart_home/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./smart_home:/docker-entrypoint-initdb.d  # Автоматическое выполнение скриптов
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER}" ]
       interval: 10s
@@ -21,8 +21,7 @@ services:
     restart: unless-stopped
     networks:
       - smarthome-network
-  ## тут нужно добавить настройки
-
+  
   rabbitmq:
     image: rabbitmq:3-management
     container_name: rabbitmq
@@ -30,7 +29,7 @@ services:
       - "5672:5672"      # основной AMQP порт
       - "15672:15672"    # веб-интерфейс управления
     healthcheck:
-      test: [ "CMD-SHELL", "bash -c \"echo > /dev/tcp/localhost/5672\""]
+      test: [ "CMD-SHELL", "bash -c \"echo > /dev/tcp/localhost/5672\"" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -41,7 +40,45 @@ services:
       - rabbitmq_data:/var/lib/rabbitmq
     networks:
       - smarthome-network
+
+  telemetry-service:
+    build:
+      context: ./telemetry
+      dockerfile: Dockerfile
+    container_name: telemetry
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - TEMPERATURE_API_URL=http://temperature-api:8080
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+    ports:
+      - "8009:8080"
+    restart: unless-stopped
+    networks:
+      - smarthome-network
   
+  smart-devices-service:
+    build:
+      context: ./smart-devices
+      dockerfile: Dockerfile
+    container_name: smart-devices
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - ASPNETCORE_URLS=http://+:8080
+    ports:
+      - "8082:8080"
+    restart: unless-stopped
+    networks:
+      - smarthome-network
+
   temperature-api:
     build:
       context: ./temperature-api
@@ -52,7 +89,7 @@ services:
     restart: unless-stopped
     networks:
       - smarthome-network
-  
+
   app:
     build:
       context: ./smart_home
@@ -64,7 +101,7 @@ services:
       temperature-api:
         condition: service_started
       rabbitmq:
-          condition: service_healthy
+        condition: service_healthy
     environment:
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/smarthome
       TEMPERATURE_API_URL: http://temperature-api:8080
@@ -78,7 +115,7 @@ services:
 volumes:
   postgres_data:
   rabbitmq_data:
-
+    
 networks:
   smarthome-network:
     driver: bridge

@@ -55,6 +55,17 @@ func main() {
 		Handler: router,
 	}
 
+// --- RabbitMQ consumer ---
+	amqpURL := getEnv("RABBITMQ_URL", "amqp://guest:guest@rabbitmq:5672/")
+	rmqCtx, rmqCancel := context.WithCancel(context.Background())
+	defer rmqCancel()
+
+	go func() {
+		if err := handlers.RunRabbitMQConsumer(rmqCtx, amqpURL,database); err != nil {
+			log.Fatalf("RabbitMQ consumer error: %v\n", err)
+		}
+	}()
+
 	// Start the server in a goroutine
 	go func() {
 		log.Printf("Server starting on %s\n", srv.Addr)

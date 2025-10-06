@@ -1,0 +1,70 @@
+﻿@startuml SD code Diagram
+!define RELATIVE_INCLUDE 
+!include ../common/C4.puml
+
+top to bottom direction
+
+title Диаграмма кода Smart Device Management Service
+
+class DeviceDataController
+{
++ List<DeviceDTO> GetAllDevices()
++ DeviceDTO GetAllDevices(int id)
++ DeviceDTO CreateDevice(DeviceCreateRequest request)
++ DeviceDTO UpdateDevice(int id, DeviceUpdateRequest request)
++ void DeleteDevice(int id)
+}
+
+class DeviceCommandController
+{
++CommandResponse SendCommand(int id, DeviceCommandRequest request)
++CommandStatus GetCommandStatus(int commandId)
+}
+
+class DeviceCommandService
+{
+- DeviceCommandExecutor deviceCommandExecutor
++ CommandResponse ExecuteCommand(int id, DeviceCommandRequest request)
++ CommandStatus GetCommandStatus(int commandId)
+}
+
+class DeviceCommandExecutor
+{
++CommandResponse ExecuteCommand(DeviceCommand command)
++CommandStatus GetCommandStatus(int commandId)
+}
+
+class SmartDeviceService
+{
+- SmartDeviceRepository deviceRepository
+- EventPublisherService publisher
+
++ List<DeviceDTO> FindAll()
++ DeviceDTO FindById(int id)
++ DeviceDTO CreateDevice(DeviceCreateRequest request)
++ DeviceDTO UpdateDevice(int id, DeviceUpdateRequest request)
++ void DeleteDevice(int id)
+}
+
+class SmartDeviceRepository
+{
++ List<Device> FindAll()
++ DeviceDTO FindById(int id)
++ Device Save(Device device)
++ List<Device> FindByStatus(DeviceStatus status)
++ List<Device> FindByType(DeviceType type)
+}
+
+class EventPublisherService
+{
++ void Publish(DeviceEvent deviceEvent)
+}
+
+DeviceDataController "1" -- "1" SmartDeviceService : uses
+SmartDeviceService "1" -- "1" SmartDeviceRepository : uses
+SmartDeviceService "1" -- "1" EventPublisherService : uses
+
+DeviceCommandController "1" -- "1" DeviceCommandService : uses
+DeviceCommandService "1" -- "1" DeviceCommandExecutor : uses
+
+@enduml

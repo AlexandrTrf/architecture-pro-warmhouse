@@ -1,0 +1,640 @@
+﻿openapi: 3.0.3
+info:
+  title: Smart Device Management Service API
+  description: API для управления устройствами умного дома и их конфигурацией
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8082
+    description: Локальный сервер разработки
+
+paths:
+  /health:
+    get:
+      summary: Проверка состояния сервиса
+      description: Возвращает статус работоспособности сервиса управления устройствами
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Сервис работает нормально
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+                  service:
+                    type: string
+                    example: "device-management"
+
+  /api/v1/devices:
+    get:
+      summary: Получить список всех устройств
+      description: Возвращает список всех устройств с их статусом и конфигурацией
+      tags:
+        - Devices
+      parameters:
+        - name: type
+          in: query
+          description: Фильтр по типу устройства
+          schema:
+            type: string
+            enum: [ light, thermostat, camera, lock, sensor, switch ]
+        - name: status
+          in: query
+          description: Фильтр по статусу устройства
+          schema:
+            type: string
+            enum: [ online, offline, error, maintenance ]
+        - name: location
+          in: query
+          description: Фильтр по местоположению
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Список устройств успешно получен
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Device'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      summary: Создать новое устройство
+      description: Создает новое устройство в системе
+      tags:
+        - Devices
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceCreate'
+      responses:
+        '201':
+          description: Устройство успешно создано
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Device'
+        '400':
+          description: Неверные данные запроса
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/devices/{id}:
+    get:
+      summary: Получить устройство по ID
+      description: Возвращает подробную информацию об устройстве
+      tags:
+        - Devices
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID устройства
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Устройство найдено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Device'
+        '404':
+          description: Устройство не найдено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      summary: Обновить устройство
+      description: Обновляет информацию об устройстве
+      tags:
+        - Devices
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID устройства
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceUpdate'
+      responses:
+        '200':
+          description: Устройство успешно обновлено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Device'
+        '400':
+          description: Неверные данные запроса
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Устройство не найдено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      summary: Удалить устройство
+      description: Удаляет устройство из системы
+      tags:
+        - Devices
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID устройства
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Устройство успешно удалено
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Device deleted successfully"
+        '404':
+          description: Устройство не найдено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/devices/{id}/status:
+    get:
+      summary: Получить статус устройства
+      description: Возвращает текущий статус устройства
+      tags:
+        - Device Status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID устройства
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Статус устройства получен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceStatus'
+        '404':
+          description: Устройство не найдено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    patch:
+      summary: Обновить статус устройства
+      description: Обновляет статус устройства
+      tags:
+        - Device Status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID устройства
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum: [ online, offline, error, maintenance ]
+                  description: Новый статус устройства
+                  example: "online"
+                message:
+                  type: string
+                  description: Дополнительное сообщение о статусе
+                  example: "Device is working normally"
+      responses:
+        '200':
+          description: Статус устройства успешно обновлен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceStatus'
+        '400':
+          description: Неверные данные запроса
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Устройство не найдено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/devices/{id}/config:
+    get:
+      summary: Получить конфигурацию устройства
+      description: Возвращает текущую конфигурацию устройства
+      tags:
+        - Device Configuration
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID устройства
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Конфигурация устройства получена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceConfig'
+        '404':
+          description: Устройство не найдено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      summary: Обновить конфигурацию устройства
+      description: Обновляет конфигурацию устройства
+      tags:
+        - Device Configuration
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID устройства
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceConfig'
+      responses:
+        '200':
+          description: Конфигурация устройства успешно обновлена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceConfig'
+        '400':
+          description: Неверные данные запроса
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Устройство не найдено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/devices/{id}/control:
+    post:
+      summary: Управление устройством
+      description: Отправляет команду управления устройством
+      tags:
+        - Device Control
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID устройства
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceCommand'
+      responses:
+        '200':
+          description: Команда успешно отправлена
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Command sent successfully"
+                  command_id:
+                    type: string
+                    example: "cmd_12345"
+        '400':
+          description: Неверная команда
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Устройство не найдено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    Device:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Уникальный идентификатор устройства
+          example: "dev_001"
+        name:
+          type: string
+          description: Название устройства
+          example: "Living Room Light"
+        type:
+          type: string
+          enum: [ light, thermostat, camera, lock, sensor, switch ]
+          description: Тип устройства
+          example: "light"
+        location:
+          type: string
+          description: Местоположение устройства
+          example: "Living Room"
+        status:
+          type: string
+          enum: [ online, offline, error, maintenance ]
+          description: Статус устройства
+          example: "online"
+        manufacturer:
+          type: string
+          description: Производитель устройства
+          example: "Philips"
+        model:
+          type: string
+          description: Модель устройства
+          example: "Hue White"
+        firmware_version:
+          type: string
+          description: Версия прошивки
+          example: "1.2.3"
+        ip_address:
+          type: string
+          description: IP адрес устройства
+          example: "192.168.1.100"
+        mac_address:
+          type: string
+          description: MAC адрес устройства
+          example: "00:11:22:33:44:55"
+        created_at:
+          type: string
+          format: date-time
+          description: Время создания записи
+          example: "2024-01-15T09:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: Время последнего обновления
+          example: "2024-01-15T10:30:00Z"
+      required:
+        - id
+        - name
+        - type
+        - location
+        - status
+
+    DeviceCreate:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Название устройства
+          example: "Living Room Light"
+        status:
+          type: string
+          enum: [active, inactive]
+          description: Статус устройства
+          example: "active"
+        type:
+          type: string
+          enum: [ light, thermostat, camera, lock, sensor, switch ]
+          description: Тип устройства
+          example: "light"
+        location:
+          type: string
+          description: Местоположение устройства
+          example: "Living Room"
+        manufacturer:
+          type: string
+          description: Производитель устройства
+          example: "Philips"
+        model:
+          type: string
+          description: Модель устройства
+          example: "Hue White"
+        ip_address:
+          type: string
+          description: IP адрес устройства
+          example: "192.168.1.100"
+        mac_address:
+          type: string
+          description: MAC адрес устройства
+          example: "00:11:22:33:44:55"
+      required:
+        - name
+        - type
+        - location
+        - status
+
+    DeviceUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Название устройства
+          example: "Living Room Light"
+        type:
+          type: string
+          enum: [ light, thermostat, camera, lock, sensor, switch ]
+          description: Тип устройства
+          example: "light"
+        location:
+          type: string
+          description: Местоположение устройства
+          example: "Living Room"
+        manufacturer:
+          type: string
+          description: Производитель устройства
+          example: "Philips"
+        model:
+          type: string
+          description: Модель устройства
+          example: "Hue White"
+        ip_address:
+          type: string
+          description: IP адрес устройства
+          example: "192.168.1.100"
+        mac_address:
+          type: string
+          description: MAC адрес устройства
+          example: "00:11:22:33:44:55"
+
+    DeviceStatus:
+      type: object
+      properties:
+        device_id:
+          type: string
+          description: ID устройства
+          example: "dev_001"
+        status:
+          type: string
+          enum: [ online, offline, error, maintenance ]
+          description: Статус устройства
+          example: "online"
+        last_seen:
+          type: string
+          format: date-time
+          description: Время последней активности
+          example: "2024-01-15T10:30:00Z"
+        message:
+          type: string
+          description: Дополнительное сообщение о статусе
+          example: "Device is working normally"
+
+    DeviceConfig:
+      type: object
+      properties:
+        device_id:
+          type: string
+          description: ID устройства
+          example: "dev_001"
+        settings:
+          type: object
+          description: Настройки устройства
+          additionalProperties: true
+          example:
+            brightness: 80
+            color: "#FFFFFF"
+            auto_off: true
+        firmware_version:
+          type: string
+          description: Версия прошивки
+          example: "1.2.3"
+        update_available:
+          type: boolean
+          description: Доступно ли обновление
+          example: false
+        last_updated:
+          type: string
+          format: date-time
+          description: Время последнего обновления конфигурации
+          example: "2024-01-15T10:30:00Z"
+
+    DeviceCommand:
+      type: object
+      properties:
+        command:
+          type: string
+          description: Команда для устройства
+          example: "turn_on"
+        parameters:
+          type: object
+          description: Параметры команды
+          additionalProperties: true
+          example:
+            brightness: 80
+            color: "#FFFFFF"
+        priority:
+          type: string
+          enum: [ low, normal, high, urgent ]
+          description: Приоритет команды
+          example: "normal"
+      required:
+        - command
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Описание ошибки
+          example: "Device not found"
+        code:
+          type: string
+          description: Код ошибки
+          example: "DEVICE_NOT_FOUND"
+
+tags:
+  - name: Health
+    description: Эндпоинты для проверки состояния сервиса
+  - name: Devices
+    description: Управление устройствами
+  - name: Device Status
+    description: Работа со статусом устройств
+  - name: Device Configuration
+    description: Конфигурация устройств
+  - name: Device Control
+    description: Управление устройствами 
